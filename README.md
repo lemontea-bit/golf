@@ -4,6 +4,12 @@
 
 [Claude Design](https://claude.ai/design) で作成したモックアップ（`Golf Score App.dc.html`）をもとに実装した、React + Vite のレスポンシブWebアプリです。
 
+## 公開URL
+
+https://lemontea-bit.github.io/golf/
+
+`main` ブランチへの push で GitHub Actions が自動ビルド・デプロイします（`.github/workflows/deploy.yml`）。
+
 ## 画面構成
 
 - **ホーム** — 進行中ラウンドのサマリー、平均スコア／ベスト／平均パットの統計、ゴルフ場検索への導線
