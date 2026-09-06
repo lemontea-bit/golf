@@ -1,38 +1,13 @@
 import { useMemo, useState } from 'react';
-import { useGolf } from '../state/store.jsx';
+import { useGolf, playedHoles } from '../state/store.jsx';
+import { REGIONS, SEARCH_COURSES } from '../data/searchCourses.js';
 
-const AREA_CHIPS = ['近くのコース', '関東', 'ピン位置対応', '初心者歓迎'];
+const FILTER_CHIPS = ['近くのコース', ...REGIONS, 'ピン位置対応', '初心者歓迎'];
 
-const KANTO_KEYWORDS = ['神奈川', '千葉', '埼玉', '東京', '群馬', '栃木', '茨城'];
-
-const COURSES = [
-  {
-    name: '相模グリーンカントリークラブ',
-    meta: '神奈川県 ／ 車で42分 ／ 18H P72',
-    price: '¥9,800',
-    tags: [
-      { k: 'ピン位置データ提供', bg: 'rgba(47,93,67,.1)', fg: 'var(--green)' },
-      { k: '初心者歓迎', bg: 'rgba(192,118,74,.12)', fg: '#7a4526' },
-    ],
-  },
-  {
-    name: '房総ヒルズゴルフクラブ',
-    meta: '千葉県 ／ 車で1時間15分 ／ 18H P72',
-    price: '¥7,200',
-    tags: [
-      { k: 'ピン位置データ提供', bg: 'rgba(47,93,67,.1)', fg: 'var(--green)' },
-      { k: 'フラット', bg: 'rgba(20,25,27,.05)', fg: 'var(--sub)' },
-    ],
-  },
-  {
-    name: '武蔵野リバーサイドGC',
-    meta: '埼玉県 ／ 車で55分 ／ 18H P71',
-    price: '¥8,400',
-    tags: [
-      { k: '2サム保証', bg: 'rgba(20,25,27,.05)', fg: 'var(--sub)' },
-      { k: '練習場あり', bg: 'rgba(20,25,27,.05)', fg: 'var(--sub)' },
-    ],
-  },
+const SORTS = [
+  { k: 'recommended', label: 'おすすめ順' },
+  { k: 'price-asc', label: '料金が安い順' },
+  { k: 'price-desc', label: '料金が高い順' },
 ];
 
 function chipStyle(on) {
@@ -41,21 +16,38 @@ function chipStyle(on) {
     : { background: 'var(--card)', color: 'var(--sub)', borderColor: 'var(--line)' };
 }
 
+const yen = new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY' });
+
 export default function Search() {
-  const { setTab } = useGolf();
+  const { state, setTab, selectCourse } = useGolf();
   const [query, setQuery] = useState('');
-  const [area, setArea] = useState(AREA_CHIPS[0]);
+  const [filter, setFilter] = useState(FILTER_CHIPS[0]);
+  const [sortKey, setSortKey] = useState(SORTS[0].k);
 
   const courses = useMemo(() => {
     const q = query.trim();
-    return COURSES.filter((c) => {
-      if (q && !c.name.includes(q) && !c.meta.includes(q)) return false;
-      if (area === '関東') return KANTO_KEYWORDS.some((k) => c.meta.includes(k));
-      if (area === 'ピン位置対応') return c.tags.some((t) => t.k === 'ピン位置データ提供');
-      if (area === '初心者歓迎') return c.tags.some((t) => t.k === '初心者歓迎');
+    let list = SEARCH_COURSES.filter((c) => {
+      if (q && !c.name.includes(q) && !c.pref.includes(q) && !c.region.includes(q)) return false;
+      if (REGIONS.includes(filter)) return c.region === filter;
+      if (filter === 'ピン位置対応') return c.tags.some((t) => t.k === 'ピン位置データ提供');
+      if (filter === '初心者歓迎') return c.tags.some((t) => t.k === '初心者歓迎');
       return true; // 近くのコース — no location data yet, show everything
     });
-  }, [query, area]);
+    if (sortKey === 'price-asc') list = [...list].sort((a, b) => a.price - b.price);
+    if (sortKey === 'price-desc') list = [...list].sort((a, b) => b.price - a.price);
+    return list;
+  }, [query, filter, sortKey]);
+
+  function handleSelect(course) {
+    const played = playedHoles(state.currentRound.scores);
+    if (played > 0) {
+      const ok = window.confirm(
+        `現在入力中のラウンド（${played}/18ホール）のコース名を「${course.name}」に変更します。よろしいですか？`,
+      );
+      if (!ok) return;
+    }
+    selectCourse(course.name, '');
+  }
 
   return (
     <div className="screen" style={{ background: 'var(--appbg)' }}>
@@ -84,10 +76,10 @@ export default function Search() {
       />
 
       <div style={{ display: 'flex', gap: 7, overflow: 'auto', padding: '12px 20px 0' }}>
-        {AREA_CHIPS.map((a) => (
+        {FILTER_CHIPS.map((a) => (
           <div
             key={a}
-            onClick={() => setArea(a)}
+            onClick={() => setFilter(a)}
             className="clickable"
             style={{
               flex: 'none',
@@ -96,7 +88,7 @@ export default function Search() {
               border: '1px solid',
               font: "500 11.5px/1 var(--font-ui)",
               whiteSpace: 'nowrap',
-              ...chipStyle(area === a),
+              ...chipStyle(filter === a),
             }}
           >
             {a}
@@ -104,17 +96,46 @@ export default function Search() {
         ))}
       </div>
 
-      <div style={{ padding: '14px 20px 20px', display: 'flex', flexDirection: 'column', gap: 9 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px 0' }}>
+        <div style={{ font: "400 11.5px/1 var(--font-ui)", color: 'var(--sub2)' }}>{courses.length}件のコース</div>
+        <select
+          value={sortKey}
+          onChange={(e) => setSortKey(e.target.value)}
+          style={{
+            border: '1px solid var(--line)',
+            borderRadius: 8,
+            background: 'var(--card)',
+            color: 'var(--sub)',
+            font: "500 11.5px/1 var(--font-ui)",
+            padding: '6px 8px',
+          }}
+        >
+          {SORTS.map((s) => (
+            <option key={s.k} value={s.k}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div style={{ padding: '10px 20px 20px', display: 'flex', flexDirection: 'column', gap: 9 }}>
         {courses.length ? (
           courses.map((c) => (
-            <div key={c.name} className="card clickable" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div
+              key={c.name}
+              onClick={() => handleSelect(c)}
+              className="card clickable"
+              style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                 <div>
                   <div style={{ font: "700 14.5px/1.35 var(--font-ui)" }}>{c.name}</div>
-                  <div style={{ font: "400 11px/1 var(--font-ui)", color: 'var(--sub2)', marginTop: 5 }}>{c.meta}</div>
+                  <div style={{ font: "400 11px/1 var(--font-ui)", color: 'var(--sub2)', marginTop: 5 }}>
+                    {c.pref} ／ {c.drive} ／ 18H P{c.par}
+                  </div>
                 </div>
                 <div style={{ flex: 'none', textAlign: 'right' }}>
-                  <div style={{ font: "700 18px/1 var(--font-num)" }}>{c.price}</div>
+                  <div style={{ font: "700 18px/1 var(--font-num)" }}>{yen.format(c.price)}</div>
                   <div style={{ font: "400 9.5px/1 var(--font-ui)", color: 'var(--sub2)', marginTop: 3 }}>平日1R</div>
                 </div>
               </div>
@@ -134,6 +155,7 @@ export default function Search() {
                   </span>
                 ))}
               </div>
+              <div style={{ font: "500 11px/1 var(--font-ui)", color: 'var(--green)' }}>タップしてこのコースでラウンドを開始 →</div>
             </div>
           ))
         ) : (

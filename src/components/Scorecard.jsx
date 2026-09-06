@@ -1,17 +1,51 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useGolf, liveTotals, playedHoles } from '../state/store.jsx';
 import { COURSE, sign, scoreCellStyle, formatDateBadge, formatDateShort, formatDateTiny } from '../data/course.js';
+import Modal from './Modal.jsx';
 
 const PUTT_BUCKET_COLORS = { 1: 'var(--clay)', 2: 'var(--green)', 3: '#6b7370', 4: '#c9cec9' };
 const PUTT_BUCKET_LABELS = { 1: '1パット', 2: '2パット', 3: '3パット', 4: '4パット以上' };
 
+const fieldStyle = {
+  padding: '12px 14px',
+  background: 'var(--appbg)',
+  border: '1px solid var(--line)',
+  borderRadius: 12,
+  font: "400 14px/1 var(--font-ui)",
+  color: 'var(--ink)',
+  width: '100%',
+};
+
 export default function Scorecard() {
-  const { state, completeRound } = useGolf();
+  const { state, completeRound, updateHistoryEntry, deleteHistoryEntry } = useGolf();
   const { currentRound, history } = state;
   const { scores } = currentRound;
+  const [editingEntry, setEditingEntry] = useState(null);
 
   const played = playedHoles(scores);
   const { total, parSum } = liveTotals(scores);
+
+  function openEdit(r) {
+    setEditingEntry({ ...r });
+  }
+
+  function saveEdit() {
+    const { id, course, date, score, par, putts } = editingEntry;
+    updateHistoryEntry(id, {
+      course: course.trim() || '名称未設定コース',
+      date,
+      score: Number(score) || 0,
+      par: Number(par) || 0,
+      putts: Number(putts) || 0,
+    });
+    setEditingEntry(null);
+  }
+
+  function removeEntry(id) {
+    if (window.confirm('このラウンドの記録を削除しますか？この操作は取り消せません。')) {
+      deleteHistoryEntry(id);
+    }
+  }
 
   const cardSections = useMemo(
     () =>
@@ -71,7 +105,8 @@ export default function Scorecard() {
         <div>
           <div style={{ font: "700 20px/1.3 var(--font-ui)" }}>スコアカード</div>
           <div style={{ font: "400 11.5px/1 var(--font-ui)", color: 'var(--sub2)', marginTop: 5 }}>
-            {currentRound.course} ／ {formatDateBadge(new Date())}
+            {currentRound.teeName ? `${currentRound.course} ／ ${currentRound.teeName}` : currentRound.course} ／{' '}
+            {formatDateBadge(new Date())}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -208,25 +243,26 @@ export default function Scorecard() {
           [...history]
             .sort((a, b) => new Date(b.date) - new Date(a.date))
             .map((r) => (
-              <div
-                key={r.id}
-                className="card"
-                style={{
-                  padding: '14px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div>
-                  <div style={{ font: "700 13.5px/1.3 var(--font-ui)" }}>{r.course}</div>
-                  <div style={{ font: "400 11px/1 var(--font-ui)", color: 'var(--sub2)', marginTop: 4 }}>
-                    {formatDateShort(r.date)} ／ パット {r.putts}
+              <div key={r.id} className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ font: "700 13.5px/1.3 var(--font-ui)" }}>{r.course}</div>
+                    <div style={{ font: "400 11px/1 var(--font-ui)", color: 'var(--sub2)', marginTop: 4 }}>
+                      {formatDateShort(r.date)} ／ パット {r.putts}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ font: "700 22px/1 var(--font-num)" }}>{r.score}</div>
+                    <div style={{ font: "500 10.5px/1 var(--font-ui)", color: 'var(--sub2)' }}>{sign(r.score - r.par)}</div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ font: "700 22px/1 var(--font-num)" }}>{r.score}</div>
-                  <div style={{ font: "500 10.5px/1 var(--font-ui)", color: 'var(--sub2)' }}>{sign(r.score - r.par)}</div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 14, borderTop: '1px solid var(--line-soft)', paddingTop: 8 }}>
+                  <span onClick={() => openEdit(r)} className="clickable" style={{ font: "500 11.5px/1 var(--font-ui)", color: 'var(--sub)' }}>
+                    編集
+                  </span>
+                  <span onClick={() => removeEntry(r.id)} className="clickable" style={{ font: "500 11.5px/1 var(--font-ui)", color: 'var(--clay)' }}>
+                    削除
+                  </span>
                 </div>
               </div>
             ))
@@ -236,6 +272,66 @@ export default function Scorecard() {
           </div>
         )}
       </div>
+
+      {editingEntry && (
+        <Modal title="ラウンド記録を編集" onClose={() => setEditingEntry(null)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <span style={{ font: "500 10.5px/1 var(--font-ui)", color: 'var(--sub2)' }}>コース名</span>
+              <input
+                style={fieldStyle}
+                value={editingEntry.course}
+                onChange={(e) => setEditingEntry({ ...editingEntry, course: e.target.value })}
+              />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <span style={{ font: "500 10.5px/1 var(--font-ui)", color: 'var(--sub2)' }}>日付</span>
+              <input
+                type="date"
+                style={fieldStyle}
+                value={editingEntry.date}
+                onChange={(e) => setEditingEntry({ ...editingEntry, date: e.target.value })}
+              />
+            </label>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
+                <span style={{ font: "500 10.5px/1 var(--font-ui)", color: 'var(--sub2)' }}>スコア</span>
+                <input
+                  type="number"
+                  style={fieldStyle}
+                  value={editingEntry.score}
+                  onChange={(e) => setEditingEntry({ ...editingEntry, score: e.target.value })}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
+                <span style={{ font: "500 10.5px/1 var(--font-ui)", color: 'var(--sub2)' }}>パー</span>
+                <input
+                  type="number"
+                  style={fieldStyle}
+                  value={editingEntry.par}
+                  onChange={(e) => setEditingEntry({ ...editingEntry, par: e.target.value })}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
+                <span style={{ font: "500 10.5px/1 var(--font-ui)", color: 'var(--sub2)' }}>パット</span>
+                <input
+                  type="number"
+                  style={fieldStyle}
+                  value={editingEntry.putts}
+                  onChange={(e) => setEditingEntry({ ...editingEntry, putts: e.target.value })}
+                />
+              </label>
+            </div>
+          </div>
+          <div
+            onClick={saveEdit}
+            className="clickable"
+            style={{ padding: 14, borderRadius: 13, background: 'var(--ink)', color: '#fff', textAlign: 'center', font: "700 14px/1 var(--font-ui)" }}
+          >
+            保存する
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

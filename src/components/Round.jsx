@@ -1,6 +1,10 @@
 import { useGolf, liveTotals } from '../state/store.jsx';
 import { COURSE, relName, sign, scoreCellStyle } from '../data/course.js';
 
+function hasEntry(sc) {
+  return sc && (sc.s != null || sc.p != null);
+}
+
 const PAD_NUMBERS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
 const PUTT_OPTIONS = [1, 2, 3, 4, 5];
 
@@ -11,7 +15,7 @@ function chipStyle(on) {
 }
 
 export default function Round() {
-  const { state, prevHole, nextHole, setHole, setScore } = useGolf();
+  const { state, prevHole, nextHole, setHole, setScore, clearHoleScore } = useGolf();
   const { hole: holeN, currentRound } = state;
   const { scores } = currentRound;
 
@@ -140,6 +144,21 @@ export default function Round() {
       >
         {saveLabel}
       </div>
+
+      {hasEntry(sc) && (
+        <div
+          onClick={() => clearHoleScore(holeN)}
+          className="clickable"
+          style={{
+            margin: '10px 20px 0',
+            textAlign: 'center',
+            font: "500 12px/1 var(--font-ui)",
+            color: 'var(--sub2)',
+          }}
+        >
+          この入力をクリア
+        </div>
+      )}
 
       <div style={{ margin: '16px 0 0', padding: '14px 20px 18px', borderTop: '1px solid var(--line-soft)' }}>
         <div

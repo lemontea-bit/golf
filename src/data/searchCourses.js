@@ -1,0 +1,93 @@
+// Sample golf course directory for the search tab. Distinct from
+// src/data/course.js, which models the single 18-hole layout used for
+// score entry / pin positions in the rest of the app.
+
+export const REGIONS = ['関東', '関西', '中部', '九州', '北海道'];
+
+const PIN_TAG = { k: 'ピン位置データ提供', bg: 'rgba(47,93,67,.1)', fg: 'var(--green)' };
+const BEGINNER_TAG = { k: '初心者歓迎', bg: 'rgba(192,118,74,.12)', fg: '#7a4526' };
+const NEUTRAL_TAG = (k) => ({ k, bg: 'rgba(20,25,27,.05)', fg: 'var(--sub)' });
+
+export const SEARCH_COURSES = [
+  {
+    name: '相模グリーンカントリークラブ',
+    region: '関東',
+    pref: '神奈川県',
+    drive: '車で42分',
+    par: 72,
+    price: 9800,
+    tags: [PIN_TAG, BEGINNER_TAG],
+  },
+  {
+    name: '房総ヒルズゴルフクラブ',
+    region: '関東',
+    pref: '千葉県',
+    drive: '車で1時間15分',
+    par: 72,
+    price: 7200,
+    tags: [PIN_TAG, NEUTRAL_TAG('フラット')],
+  },
+  {
+    name: '武蔵野リバーサイドGC',
+    region: '関東',
+    pref: '埼玉県',
+    drive: '車で55分',
+    par: 71,
+    price: 8400,
+    tags: [NEUTRAL_TAG('2サム保証'), NEUTRAL_TAG('練習場あり')],
+  },
+  {
+    name: '六甲マウンテンゴルフ倶楽部',
+    region: '関西',
+    pref: '兵庫県',
+    drive: '車で1時間5分',
+    par: 72,
+    price: 11000,
+    tags: [PIN_TAG, NEUTRAL_TAG('丘陵コース')],
+  },
+  {
+    name: '淀川パブリックコース',
+    region: '関西',
+    pref: '大阪府',
+    drive: '車で38分',
+    par: 70,
+    price: 6500,
+    tags: [BEGINNER_TAG, NEUTRAL_TAG('パブリック')],
+  },
+  {
+    name: '富士愛鷹ゴルフコース',
+    region: '中部',
+    pref: '静岡県',
+    drive: '車で1時間30分',
+    par: 72,
+    price: 9200,
+    tags: [PIN_TAG, NEUTRAL_TAG('富士山ビュー')],
+  },
+  {
+    name: '知多半島カントリークラブ',
+    region: '中部',
+    pref: '愛知県',
+    drive: '車で50分',
+    par: 72,
+    price: 8000,
+    tags: [BEGINNER_TAG, NEUTRAL_TAG('フラット')],
+  },
+  {
+    name: '博多グリーンヒルズGC',
+    region: '九州',
+    pref: '福岡県',
+    drive: '車で40分',
+    par: 71,
+    price: 7800,
+    tags: [PIN_TAG, BEGINNER_TAG],
+  },
+  {
+    name: '北海道ノーザンリンクスGC',
+    region: '北海道',
+    pref: '北海道',
+    drive: '車で1時間',
+    par: 72,
+    price: 6800,
+    tags: [PIN_TAG, NEUTRAL_TAG('雄大な景観')],
+  },
+];

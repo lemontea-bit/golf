@@ -87,6 +87,32 @@ function reducer(state, action) {
         },
       };
     }
+    case 'CLEAR_HOLE_SCORE': {
+      const scores = { ...state.currentRound.scores };
+      delete scores[action.holeNumber];
+      return { ...state, currentRound: { ...state.currentRound, scores } };
+    }
+    case 'SET_USER_NAME': {
+      const name = action.name.trim();
+      if (!name) return state;
+      return { ...state, user: { ...state.user, name, avatar: [...name][0].toUpperCase() } };
+    }
+    case 'SELECT_COURSE': {
+      return {
+        ...state,
+        tab: 'home',
+        currentRound: { ...state.currentRound, course: action.course, teeName: action.teeName || '' },
+      };
+    }
+    case 'UPDATE_HISTORY_ENTRY': {
+      return {
+        ...state,
+        history: state.history.map((r) => (r.id === action.id ? { ...r, ...action.patch } : r)),
+      };
+    }
+    case 'DELETE_HISTORY_ENTRY': {
+      return { ...state, history: state.history.filter((r) => r.id !== action.id) };
+    }
     case 'COMPLETE_ROUND': {
       const { scores, course, teeName } = state.currentRound;
       let score = 0;
@@ -143,7 +169,12 @@ export function GolfProvider({ children }) {
       prevHole: () => dispatch({ type: 'PREV_HOLE' }),
       nextHole: () => dispatch({ type: 'NEXT_HOLE' }),
       setScore: (holeNumber, patch) => dispatch({ type: 'SET_SCORE', holeNumber, patch }),
+      clearHoleScore: (holeNumber) => dispatch({ type: 'CLEAR_HOLE_SCORE', holeNumber }),
       completeRound: () => dispatch({ type: 'COMPLETE_ROUND' }),
+      setUserName: (name) => dispatch({ type: 'SET_USER_NAME', name }),
+      selectCourse: (course, teeName) => dispatch({ type: 'SELECT_COURSE', course, teeName }),
+      updateHistoryEntry: (id, patch) => dispatch({ type: 'UPDATE_HISTORY_ENTRY', id, patch }),
+      deleteHistoryEntry: (id) => dispatch({ type: 'DELETE_HISTORY_ENTRY', id }),
     }),
     [],
   );

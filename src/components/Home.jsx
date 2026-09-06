@@ -1,15 +1,32 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useGolf, liveTotals, playedHoles } from '../state/store.jsx';
 import { COURSE, sign, formatDateBadge } from '../data/course.js';
+import { SEARCH_COURSES } from '../data/searchCourses.js';
+import Modal from './Modal.jsx';
+
+const PIN_COURSE_COUNT = SEARCH_COURSES.filter((c) => c.tags.some((t) => t.k === 'ピン位置データ提供')).length;
 
 export default function Home() {
-  const { state, setTab } = useGolf();
+  const { state, setTab, setUserName } = useGolf();
   const { user, currentRound, history } = state;
   const { scores } = currentRound;
+
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState(user.name);
 
   const today = useMemo(() => formatDateBadge(new Date()), []);
   const played = playedHoles(scores);
   const { total, parSum } = liveTotals(scores);
+
+  function openNameEditor() {
+    setNameDraft(user.name);
+    setEditingName(true);
+  }
+
+  function saveName() {
+    setUserName(nameDraft);
+    setEditingName(false);
+  }
 
   const stats = useMemo(() => {
     if (history.length === 0) {
@@ -37,6 +54,9 @@ export default function Home() {
           <div style={{ font: "700 22px/1.35 var(--font-ui)", marginTop: 5 }}>こんにちは、{user.name}さん</div>
         </div>
         <div
+          onClick={openNameEditor}
+          className="clickable"
+          title="名前を編集"
           style={{
             width: 40,
             height: 40,
@@ -52,6 +72,42 @@ export default function Home() {
           {user.avatar}
         </div>
       </div>
+
+      {editingName && (
+        <Modal title="名前を編集" onClose={() => setEditingName(false)}>
+          <input
+            autoFocus
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && saveName()}
+            placeholder="表示名"
+            maxLength={20}
+            style={{
+              padding: '14px 16px',
+              background: 'var(--appbg)',
+              border: '1px solid var(--line)',
+              borderRadius: 13,
+              font: "400 15px/1 var(--font-ui)",
+              color: 'var(--ink)',
+              width: '100%',
+            }}
+          />
+          <div
+            onClick={saveName}
+            className="clickable"
+            style={{
+              padding: 14,
+              borderRadius: 13,
+              background: 'var(--ink)',
+              color: '#fff',
+              textAlign: 'center',
+              font: "700 14px/1 var(--font-ui)",
+            }}
+          >
+            保存する
+          </div>
+        </Modal>
+      )}
 
       <div
         style={{
@@ -71,7 +127,7 @@ export default function Home() {
               ROUND IN PROGRESS
             </div>
             <div style={{ font: "700 17px/1.4 var(--font-ui)", marginTop: 6 }}>
-              {currentRound.course} ／ {currentRound.teeName}
+              {currentRound.teeName ? `${currentRound.course} ／ ${currentRound.teeName}` : currentRound.course}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -144,7 +200,7 @@ export default function Home() {
         <div>
           <div style={{ font: "700 14px/1.4 var(--font-ui)" }}>ゴルフ場を探す</div>
           <div style={{ font: "400 11.5px/1.5 var(--font-ui)", color: 'var(--sub2)', marginTop: 3 }}>
-            ピン位置データ提供コース 128件
+            ピン位置データ提供コース {PIN_COURSE_COUNT}件
           </div>
         </div>
         <div style={{ font: "500 16px/1 var(--font-num)", color: 'var(--sub2)' }}>→</div>
